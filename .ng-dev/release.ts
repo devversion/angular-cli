@@ -18,6 +18,6 @@ export const release: ReleaseConfig = {
       '@angular-devkit/schematics-cli',
     ],
   },
-  publishRegistry: 'https://wombat-dressing-room.appspot.com',
+//  publishRegistry: 'https://wombat-dressing-room.appspot.com',
   releasePrLabels: ['action: merge'],
 };

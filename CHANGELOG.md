@@ -1,3 +1,13 @@
+<a name="12.2.15"></a>
+
+# 12.2.15 (2021-12-10)
+
+## Special Thanks
+
+Paul Gschwendtner
+
+<!-- CHANGELOG SPLIT MARKER -->
+
 <a name="12.2.14"></a>
 
 # 12.2.14 (2021-12-06)

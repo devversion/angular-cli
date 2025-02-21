@@ -3,7 +3,7 @@ storage: ./storage
 auth:
   auth-memory:
     users: {}
-listen: localhost:${HTTP_PORT}
+listen: 0.0.0.0:${HTTP_PORT}
 uplinks:
   npmjs:
     url: https://registry.npmjs.org/
@@ -40,11 +40,6 @@ packages:
   '**':
     access: $all
     proxy: npmjs
-
-log:
-  type: stdout
-  format: pretty
-  level: warn
 
 # https://github.com/verdaccio/verdaccio/issues/301
 server:

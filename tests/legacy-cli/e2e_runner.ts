@@ -12,6 +12,7 @@ import { findFreePort } from './e2e/utils/network';
 import { extractFile } from './e2e/utils/tar';
 import { realpathSync } from 'node:fs';
 import { PkgInfo } from './e2e/utils/packages';
+import { rm } from 'node:fs/promises';
 
 Error.stackTraceLimit = Infinity;
 
@@ -222,8 +223,8 @@ Promise.all([findFreePort(), findFreePort(), findPackageTars()])
     setGlobalVariable('package-tars', packageTars);
 
     // NPM registries for the lifetime of the test execution
-    const registryProcess = await createNpmRegistry(httpPort, httpPort);
-    const secureRegistryProcess = await createNpmRegistry(httpPort, httpsPort, true);
+    await createNpmRegistry(httpPort, httpPort);
+    await createNpmRegistry(httpPort, httpsPort, true);
 
     try {
       await runSteps(runSetup, allSetups, 'setup');
@@ -260,8 +261,8 @@ Promise.all([findFreePort(), findFreePort(), findPackageTars()])
 
       process.exitCode = 1;
     } finally {
-      registryProcess.kill();
-      secureRegistryProcess.kill();
+      // Note: Need to exit as Verdaccio API does not expose a way to stop the server.
+      process.exit();
     }
   })
   .catch((err) => {
@@ -328,7 +329,18 @@ async function runTest(absoluteName: string): Promise<void> {
   process.chdir(join(getGlobalVariable('projects-root'), 'test-project'));
 
   await launchTestProcess(absoluteName);
+  await cleanTestProject();
+}
+
+async function cleanTestProject() {
   await gitClean();
+
+  const testProject = join(getGlobalVariable('projects-root'), 'test-project');
+
+  // Note: Dist directory is not cleared between tests, as `git clean` doesn't
+  // delete it. For some reason, this is not surfacing on macOS/Linux, but it
+  // generally makes sense to clear dist between tests, so we add this logic.
+  await rm(join(testProject, 'dist/'), { recursive: true, force: true });
 }
 
 function printHeader(

@@ -1,44 +1,42 @@
-import { ChildProcess, fork } from 'node:child_process';
-import { on } from 'node:events';
 import { join } from 'node:path';
 import { getGlobalVariable } from './env';
 import { writeFile, readFile } from './fs';
 import { mktempd } from './utils';
+import { runServer as runVerdaccioServer } from 'verdaccio';
+import { setup as setupVerdaccioLogger } from 'verdaccio/build/lib/logger';
 
 export async function createNpmRegistry(
   port: number,
   httpsPort: number,
   withAuthentication = false,
-): Promise<ChildProcess> {
+): Promise<void> {
   // Setup local package registry
   const registryPath = await mktempd('angular-cli-e2e-registry-');
 
   let configContent = await readFile(
-    join(__dirname, '../../', withAuthentication ? 'verdaccio_auth.yaml' : 'verdaccio.yaml'),
+    join('tests/legacy-cli', withAuthentication ? 'verdaccio_auth.yaml' : 'verdaccio.yaml'),
   );
   configContent = configContent.replace(/\$\{HTTP_PORT\}/g, String(port));
   configContent = configContent.replace(/\$\{HTTPS_PORT\}/g, String(httpsPort));
   const configPath = join(registryPath, 'verdaccio.yaml');
   await writeFile(configPath, configContent);
 
-  const verdaccioServer = fork(require.resolve('verdaccio/bin/verdaccio'), ['-c', configPath]);
-  for await (const events of on(verdaccioServer, 'message', {
-    signal: AbortSignal.timeout(30_000),
-  })) {
-    if (
-      events.some(
-        (event: unknown) =>
-          event &&
-          typeof event === 'object' &&
-          'verdaccio_started' in event &&
-          event.verdaccio_started,
-      )
-    ) {
-      break;
-    }
-  }
+  const instancePort = withAuthentication ? httpsPort : port;
 
-  return verdaccioServer;
+  // Verdaccio config `log` section is not respected by the programmatic API.
+  setupVerdaccioLogger({
+    type: 'stdout',
+    level: 'warn',
+    format: 'pretty',
+  });
+
+  const server = await runVerdaccioServer(configPath);
+
+  await new Promise<void>((resolve) => {
+    server.listen(instancePort, () => resolve());
+  });
+
+  console.log(`Verdaccio running on: http://localhost:${instancePort}`);
 }
 
 // Token was generated using `echo -n 'testing:s3cret' | openssl base64`.

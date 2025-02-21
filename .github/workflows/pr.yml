@@ -126,22 +126,42 @@ jobs:
         run: yarn bazel test --define=E2E_SHARD_TOTAL=6 --define=E2E_SHARD_INDEX=${{ matrix.shard }} --config=e2e //tests/legacy-cli:e2e.${{ matrix.subset }}_node${{ matrix.node }}
 
   e2e-windows-subset:
-    needs: build
-    runs-on: windows-latest
+    # needs: build
+    runs-on: windows-2025
+    env:
+      ACTIONS_STEP_DEBUG: 'true'
     steps:
-      # Workaround for: https://github.com/bazel-contrib/bazel-lib/issues/968.
-      # TODO(devversion): Remove when Aspect lib issue is fixed.
-      - run: choco install gzip
       - name: Initialize environment
-        uses: angular/dev-infra/github-actions/npm/checkout-and-setup-node@b3240b00315baa96f1b2deea2f71315f870dbb43
-      - name: Install node modules
-        run: yarn install --immutable
-      - name: Setup Bazel
-        uses: angular/dev-infra/github-actions/bazel/setup@b3240b00315baa96f1b2deea2f71315f870dbb43
-      - name: Setup Bazel RBE
-        uses: angular/dev-infra/github-actions/bazel/configure-remote@b3240b00315baa96f1b2deea2f71315f870dbb43
+        uses: angular/dev-infra/github-actions/npm/checkout-and-setup-node@0000d926624b2fd918e93f1c6b5e2defba9af91f
+      - run: ls -alh D:/a/angular-cli/angular-cli
+        shell: bash
       - name: Run CLI E2E tests
-        run: yarn bazel test --config=e2e //tests/legacy-cli:e2e_node22 --test_filter="tests/basic/{build,rebuild}.ts" --test_arg="--esbuild"
+        uses: ./.github/shared-actions/windows-bazel-test
+        with:
+          test_target_name: e2e_node22
+          test_args: --esbuild --glob "tests/basic/{build,rebuild}.ts"
+      - run: ls -alh D:/a/angular-cli/angular-cli
+        shell: bash
+
+  #  e2e_windows:
+  #    strategy:
+  #      fail-fast: false
+  #      matrix:
+  #        os: [windows-2025]
+  #        node: [22]
+  #        subset: [npm, esbuild]
+  #        shard: [0, 1, 2, 3, 4, 5]
+  #    runs-on: ${{ matrix.os }}
+  #    steps:
+  #      - name: Initialize environment
+  #        uses: angular/dev-infra/github-actions/npm/checkout-and-setup-node@d16848fd2ed19fce59488b540fa26a3353c72ad4
+  #      - name: Run CLI E2E tests
+  #        uses: ./.github/shared-actions/windows-bazel-test
+  #        with:
+  #          command: |
+  #            yarn bazel test \
+  #              --define=E2E_SHARD_TOTAL=6 --define=E2E_SHARD_INDEX=${{ matrix.shard }} \
+  #              --config=e2e //tests/legacy-cli:e2e.${{ matrix.subset }}_node${{ matrix.node }} \
 
   e2e-package-managers:
     needs: build

@@ -2,12 +2,6 @@ workspace(name = "angular_cli")
 
 DEFAULT_NODE_VERSION = "20.11.1"
 
-# Workaround for: https://github.com/bazel-contrib/bazel-lib/issues/968.
-# Override toolchain for tar on windows.
-register_toolchains(
-    "//tools:windows_tar_system_toolchain",
-)
-
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive", "http_file")
 
 http_archive(
@@ -145,13 +139,6 @@ aspect_bazel_lib_dependencies()
 
 aspect_bazel_lib_register_toolchains()
 
-register_toolchains(
-    "@npm//@angular/build-tooling/bazel/git-toolchain:git_linux_toolchain",
-    "@npm//@angular/build-tooling/bazel/git-toolchain:git_macos_x86_toolchain",
-    "@npm//@angular/build-tooling/bazel/git-toolchain:git_macos_arm64_toolchain",
-    "@npm//@angular/build-tooling/bazel/git-toolchain:git_windows_toolchain",
-)
-
 load("@npm//@angular/build-tooling/bazel/browsers:browser_repositories.bzl", "browser_repositories")
 
 browser_repositories()
@@ -205,6 +192,13 @@ npm_translate_lock(
         # for `rules_nodejs` dependencies :)
     },
     pnpm_lock = "//:pnpm-lock.yaml",
+    public_hoist_packages = {
+        # Pino of Verdaccio can't be bundled, so we make it loadable as runtime dep.
+        # Similarly, logger-prettify is dynamically loaded at runtime.
+        "pino": [""],
+        "@verdaccio/config": [""],
+        "@verdaccio/logger-prettify": [""],
+    },
     update_pnpm_lock = True,
     verify_node_modules_ignored = "//:.bazelignore",
     yarn_lock = "//:yarn.lock",
@@ -216,8 +210,6 @@ npm_repositories()
 
 http_archive(
     name = "aspect_rules_ts",
-    patch_args = ["-p1"],
-    patches = ["//tools:rules_ts_windows.patch"],
     sha256 = "4263532b2fb4d16f309d80e3597191a1cb2fb69c19e95d91711bd6b97874705e",
     strip_prefix = "rules_ts-3.5.0",
     url = "https://github.com/aspect-build/rules_ts/releases/download/v3.5.0/rules_ts-v3.5.0.tar.gz",
@@ -253,7 +245,7 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 git_repository(
     name = "devinfra",
-    commit = "0ad6a370f70638e785d6ef1f90dc6ede34684a47",
+    commit = "0f920f422b8bbf1ca96a72cf01e18b95e266dc98",
     remote = "https://github.com/angular/dev-infra.git",
 )
 
@@ -264,3 +256,10 @@ setup_dependencies_1()
 load("@devinfra//bazel:setup_dependencies_2.bzl", "setup_dependencies_2")
 
 setup_dependencies_2()
+
+register_toolchains(
+    "@devinfra//bazel/git-toolchain:git_linux_toolchain",
+    "@devinfra//bazel/git-toolchain:git_macos_x86_toolchain",
+    "@devinfra//bazel/git-toolchain:git_macos_arm64_toolchain",
+    "@devinfra//bazel/git-toolchain:git_windows_toolchain",
+)
